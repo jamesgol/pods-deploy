@@ -33,6 +33,7 @@ class Pods_Deploy {
 		$response = wp_remote_post( $url, array (
 				'method'    => 'POST',
 				'body'      => $data,
+				'timeout'     => 60,
 			)
 		);
 
@@ -53,6 +54,7 @@ class Pods_Deploy {
 				$responses[] = $response = wp_remote_post( $url, array (
 						'method'      => 'POST',
 						'body'        => json_encode( $data ),
+						'timeout'     => 60,
 					)
 				);
 
