@@ -62,16 +62,15 @@ class Pods_Deploy_UI {
 
 				}
 
-				$params[ 'components' ] = array( 'migrate-packages' );
-				$components = $this->active_components();
-				if ( is_array( $components ) ) {
-					foreach (  $components as $name => $label  ) {
-						if ( pods_v_sanitized( $name, 'POST' ) ) {
-							$params[ 'components' ][ ] = $name;
-						}
-					}
-
+				if ( ! pods_v_sanitized( 'deploy-components', 'post' )  ) {
+					$params[ 'components' ] = false;
 				}
+				else {
+					$params[ 'components' ] = true;
+				}
+
+
+
 
 				pods_deploy( $params );
 
@@ -108,40 +107,8 @@ class Pods_Deploy_UI {
 	 * @return array|mixed
 	 */
 	function pod_names() {
-		$api = pods_api();
-		$params[ 'names' ] = true;
-		$pod_names = $api->load_pods( $params );
 
-		return $pod_names;
-
-	}
-
-	/**
-	 * Get an array of active components
-	 *
-	 * @since 0.4.0
-	 *
-	 * @return array|void
-	 */
-	function active_components() {
-		$components = new PodsComponents();
-		$components = $components->get_components();
-		$component_names = $components = wp_list_pluck( $components, 'Name'  );
-		$active_components = get_option( 'pods_component_settings' );
-		$active_components =  json_decode( $active_components );
-		$active_components = pods_v( 'components', $active_components );
-		$active_components =  array_keys( (array) $active_components );
-
-		foreach( $active_components as $component ) {
-			if ( ! is_null( pods_v( $component,$component_names ) ) ) {
-
-				$the_active_components[ $component ] = $component_names[ $component ];
-
-			}
-
-		}
-
-		return $the_active_components;
+		return pods_deploy_pod_names();
 
 	}
 
@@ -179,10 +146,17 @@ class Pods_Deploy_UI {
 					'value' => $private_local,
 					'options' => '',
 				),
+			'deploy-components' =>
+				array(
+					'label' => __( 'Activate Pods Components', 'pods-deploy' ),
+					'help' => __( 'If checked, Pods Deploy will activate all components from this site on remote site. If false, it will only activate the Migrate Packages component, which is required.', 'pods-deploy' ),
+					'value' => true,
+					'type' => 'boolean',
+				),
 
 		);
 
-		
+
 		return $form_fields;
 
 	}

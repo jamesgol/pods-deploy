@@ -60,7 +60,7 @@ function pods_deploy_load_plugin() {
 		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-ui.php' );
 		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy.php' );
 
-		$GLOBALS[ 'Pods_Deploy_UI' ] = $ui = new Pods_Deploy_UI();
+		$ui = new Pods_Deploy_UI();
 		add_filter( 'pods_admin_menu', array( $ui, 'menu') );
 		add_action( 'init', 'pods_deploy_auth' );
 	}
@@ -152,6 +152,21 @@ function pods_deploy_auth() {
 
 }
 
+/**
+ * Output a list of field names.
+ *
+ * @since 0.4.0
+ *
+ * @return array|mixed
+ */
+function pods_deploy_pod_names() {
+	$api = pods_api();
+	$params[ 'names' ] = true;
+	$pod_names = $api->load_pods( $params );
+
+	return $pod_names;
+
+}
 
 
 
