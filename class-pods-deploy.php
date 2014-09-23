@@ -51,7 +51,8 @@ class Pods_Deploy {
 		// Deploy everything other than the pods
 		self::do_deploy( $params, $deploy_params );
 
-		self::do_deploy_relationships( $deploy_params );
+		self::do_deploy_relationships( $deploy_params, $pod_names );
+		
 	}
 
 	private static function do_deploy( $params, $deploy_params ) {
@@ -99,7 +100,7 @@ class Pods_Deploy {
 
 	}
 
-	private static function do_deploy_relationships( $deploy_params ) {
+	private static function do_deploy_relationships( $deploy_params, $pod_names ) {
 
 		$remote_url = pods_v( 'remote_url', $deploy_params );
 		$public_key = pods_v( 'public_key', $deploy_params );
