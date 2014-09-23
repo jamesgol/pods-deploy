@@ -182,28 +182,7 @@ class Pods_Deploy_UI {
 
 		);
 
-		$pod_names = $this->pod_names();
-
-		if ( is_array( $pod_names ) ) {
-			foreach ( $pod_names as $name => $label ) {
-				$form_fields[ $name ] = array (
-					'label' => $label,
-					'type'  => 'boolean',
-				);
-			}
-		}
-
-		$active_components = $this->active_components();
-
-		if ( is_array( $active_components ) ) {
-			foreach( $active_components as $name => $label ) {
-				$form_fields[ $name ] = array (
-					'label' => $label,
-					'type'  => 'boolean',
-				);
-			}
-		}
-
+		
 		return $form_fields;
 
 	}
