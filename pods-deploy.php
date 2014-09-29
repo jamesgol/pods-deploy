@@ -3,7 +3,7 @@
 Plugin Name: Pods Deploy
 Plugin URI: http://pods.io/
 Description: Automated Pods config deploy via the WordPress REST API.
-Version: 0.1.0
+Version: 0.4.0
 Author: Pods Framework Team
 Author URI: http://pods.io/about/
 Text Domain: pods-deploy
@@ -26,7 +26,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define( 'PODS_DEPLOY_VERSION', '0.1.0' );
+define( 'PODS_DEPLOY_VERSION', '0.4.0' );
 define( 'PODS_DEPLOY_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2.1' );
 define( 'PODS_DEPLOY_MIN_PODS_VERSION', '2.4.3' );
