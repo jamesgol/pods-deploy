@@ -88,7 +88,7 @@ class Pods_Deploy_UI {
 			if ( $activate ) {
 				Pods_Deploy_Auth::allow_deploy();
 				Pods_Deploy_Auth::generate_keys();
-				$this->include_view();
+				
 			}
 			else {
 				Pods_Deploy_Auth::revoke_keys();
