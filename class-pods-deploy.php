@@ -23,7 +23,13 @@ class Pods_Deploy {
 			
 		}
 
-		self::do_deploy_components( pods_v( 'components', $deploy_params ), $timeout, $remote_url, $public_key, $token );
+		$deploy_components = self::do_deploy_components( pods_v( 'components', $deploy_params ), $timeout, $remote_url, $public_key, $token );
+
+		if ( false == $deploy_components ) {
+			echo self::output_message( __( 'Components could not be activated on remote site. Deployment aborted.', 'pods-deploy' ) );
+			return false;
+		}
+
 
 		$fail = false;
 
@@ -153,15 +159,25 @@ class Pods_Deploy {
 
 	private static function do_deploy_components( $components = null, $timeout, $remote_url, $public_key, $token ) {
 
-		if ( ! $components ) {
-			$components = array( 'migrate-packages' );
-		}
-		else {
+
+		if ( true === $components ) {
+
 			$components = self::active_components();
+
 		}
 
+		if ( ! is_array( $components ) ) {
+			$components = array( 'migrate-packages' => 'Migrate Packages' );
+		}
 
-		$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $remote_url );
+		if ( ! array_key_exists( 'migrate-packages', $components ) ) {
+			$components[ 'migrate-packages' ] = 'Migrate Packages';
+		}
+
+		$url = trailingslashit( $remote_url ) . 'pods-components';
+
+
+		$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $url );
 
 		$response = wp_remote_post( $url, array (
 				'method'    => 'GET',
@@ -171,7 +187,8 @@ class Pods_Deploy {
 
 		if ( ! self::check_return( $response ) ) {
 			echo self::output_message( __( 'Could not get activate components from remote site:(', 'pod-deploy' ), $url );
-			return;
+			var_dump( $response );
+			return false;
 		}
 
 		$remote_components = json_decode( wp_remote_retrieve_body( $response ) );
@@ -204,6 +221,7 @@ class Pods_Deploy {
 		else {
 			self::output_message( __( 'Component activation failed.', 'pods-deploy' ), $url );
 			var_dump( $response );
+			return false;
 		}
 
 		return $response;
