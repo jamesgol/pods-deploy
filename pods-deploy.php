@@ -142,7 +142,7 @@ function pods_deploy( $params ) {
  * @since 0.3.0
  */
 function pods_deploy_auth() {
-	if ( get_option( Pods_Deploy_Auth::$allow_option_name, true ) ) {
+	if ( get_option( Pods_Deploy_Auth::$allow_option_name, false ) ) {
 
 		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-auth.php' );
 		
