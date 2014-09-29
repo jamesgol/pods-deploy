@@ -17,8 +17,6 @@ In addition, pretty permalinks must be active on both sites.
 ### Instructions
 Pods Deploy needs to be setup on both the remote (deploy to) site and the local (deploy from) site. You must manually allow deployments to a site. When you do a public/private key pair is generated. You must supply this key pair and the remote site's API url to the local (deploy from) site.
 
-<em>Pods Deploy can not activate components on remote site, yet.</em> You must activate all necessary components before deployment. IE If you are deploying an Advanced Content Type Pod, you must manually activate the Advanced Content Type component on the remote site.
-
 ##### Remote (To) Site
 * Go to Pods Admin-> Pods Deploy page, "Allow Deploying To This Site" tab.
 * Click the blue "Allow Deployments" button.
