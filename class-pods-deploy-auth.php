@@ -142,15 +142,27 @@ class Pods_Deploy_Auth {
 	/**
 	 * Save keys used for deployment.
 	 *
-	 * @param string $key
+	 * @param string $public
 	 * @param string $private
 	 *
 	 * @since 0.3.0
 	 */
-	public static function save_local_keys( $key, $private ) {
+	public static function save_local_keys( $public, $private ) {
 
-		update_option( self::$public_key_option_name . '_local', $key );
+		update_option( self::$public_key_option_name . '_local', $public );
 		update_option( self::$private_key_option_name . '_local', $private );
+
+	}
+
+	/**
+	 * Clear stored local keys
+	 *
+	 * @since 0.4.0
+	 */
+	public static function clear_local_keys() {
+
+		delete_option( self::$public_key_option_name . '_local' );
+		delete_option( self::$private_key_option_name . '_local' );
 
 	}
 

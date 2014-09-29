@@ -43,6 +43,7 @@ class Pods_Deploy_UI {
 			$public_key = pods_v_sanitized( 'public-key', 'post' );
 			if ( $remote_url && $private_key && $public_key ) {
 				Pods_Deploy_Auth::save_local_keys( $private_key, $public_key );
+				update_option( 'pods_deploy_remote_url', $remote_url );
 
 				$params = array(
 					'remote_url' => $remote_url,

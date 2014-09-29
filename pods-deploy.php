@@ -179,6 +179,7 @@ register_deactivation_hook( __FILE__, 'pods_deploy_deactivate' );
 function pods_deploy_deactivate() {
 	include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-auth.php' );
 	Pods_Deploy_Auth::revoke_keys();
+	Pods_Deploy_Auth::clear_local_keys();
 
 }
 
