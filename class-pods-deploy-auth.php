@@ -235,7 +235,11 @@ class Pods_Deploy_Auth {
 	 */
 	public static function allow_deploy( $allow = true ) {
 
-		update_option( self::$allow_option_name, $allow );
+		if ( $allow ) {
+			update_option( self::$allow_option_name, $allow );
+		} else {
+			delete_option( self::$allow_option_name );
+		}
 
 	}
 

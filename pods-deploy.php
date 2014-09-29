@@ -142,7 +142,7 @@ function pods_deploy( $params ) {
  * @since 0.3.0
  */
 function pods_deploy_auth() {
-	if ( get_option( Pods_Deploy_Auth::$allow_option_name, false ) ) {
+	if ( class_exists( 'Pods_Deploy_Auth' ) && get_option( Pods_Deploy_Auth::$allow_option_name, false ) ) {
 
 		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-auth.php' );
 		
@@ -165,6 +165,20 @@ function pods_deploy_pod_names() {
 	$pod_names = $api->load_pods( $params );
 
 	return $pod_names;
+
+}
+
+/**
+ * Deactivation
+ *
+ * Disables deployments to this site and erases the stored keys.
+ *
+ * @since 0.4.0
+ */
+register_deactivation_hook( __FILE__, 'pods_deploy_deactivate' );
+function pods_deploy_deactivate() {
+	include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-auth.php' );
+	Pods_Deploy_Auth::revoke_keys();
 
 }
 
