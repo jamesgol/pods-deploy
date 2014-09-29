@@ -1,6 +1,7 @@
 <?php
 
 class Pods_Deploy_UI {
+	public static $remote_url_key = 'pods_deploy_remote_url';
 
 	/**
 	 * Callback for adding Pods Deploy to menus.
@@ -43,7 +44,8 @@ class Pods_Deploy_UI {
 			$public_key = pods_v_sanitized( 'public-key', 'post' );
 			if ( $remote_url && $private_key && $public_key ) {
 				Pods_Deploy_Auth::save_local_keys( $private_key, $public_key );
-				update_option( 'pods_deploy_remote_url', $remote_url );
+
+				update_option( self::$remote_url_key, $remote_url );
 
 				$params = array(
 					'remote_url' => $remote_url,
@@ -124,13 +126,14 @@ class Pods_Deploy_UI {
 		$keys = Pods_Deploy_Auth::get_keys( false );
 		$public_local = pods_v_sanitized( 'public', $keys, '' );
 		$private_local = pods_v_sanitized( 'private', $keys, '' );
+		$remote_url = get_option( self::$remote_url_key, '' );
 
 		$form_fields = array(
 			'remote-url' =>
 				array(
 					'label' => __( 'URL To Remote Site API', 'pods-deploy' ),
 					'help' => __( 'For example "http://example.com/wp-json"', 'pods-deploy' ),
-					'value' => '',
+					'value' => $remote_url,
 					'options' => '',
 				),
 			'public-key' =>
@@ -174,6 +177,7 @@ class Pods_Deploy_UI {
 		$public_remote = pods_v_sanitized( 'public', $keys, '' );
 		$private_remote = pods_v_sanitized( 'private', $keys, '' );
 		$deploy_active = Pods_Deploy_Auth::deploy_active();
+
 		if ( $deploy_active ) {
 			$key_gen_submit = __( 'Disable Deployments', 'pods-deploy' );
 			$key_gen_header = __( 'Click to revoke keys and prevent deployments to this site.', 'pods-deploy' );
@@ -185,7 +189,7 @@ class Pods_Deploy_UI {
 		}
 		$form_fields = $this->form_fields();
 
-		$data = compact( array( 'keys', 'public_local', 'private_local', 'public_remote', 'private_remote', 'deploy_active', 'key_gen_submit', 'key_gen_header', 'form_fields' ) );
+		$data = compact( array( 'keys', 'public_local', 'private_local', 'public_remote', 'private_remote', 'deploy_active', 'key_gen_submit', 'key_gen_header', 'form_fields', ) );
 
 
 		return pods_view( PODS_DEPLOY_DIR . 'ui/main.php', $data );
