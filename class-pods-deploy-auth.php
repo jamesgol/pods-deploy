@@ -14,6 +14,8 @@ class Pods_Deploy_Auth {
 	public static function allow_access() {
 		if ( true == self::check_auth() ) {
 			add_filter( 'pods_json_api_access_components_package', '__return_true' );
+			add_filter( 'pods_json_api_access_components_get_components', '__return_true' );
+			add_filter( 'pods_json_api_access_components_activate_components', '__return_true' );
 			add_filter( 'pods_json_api_access_api_update_rel', '__return_true' );
 			return true;
 		}
