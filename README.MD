@@ -3,7 +3,9 @@ Pods Deploy
 
 Deploys Pods configuration to a remote site. Copies Pods setup, Pods Template, Pods Pages and Pods Helpers via the WordPress REST API.
 
-<strong>BETA SOFTWARE</strong>This plugin is still under development, and might bot work as expected or at all. The public/private key pair method for authentication is still being evaluated. USE AT YOUR OWN RISK. It is strongly advised that deployments be done over HTTPS.
+<strong>BETA SOFTWARE</strong>
+
+This plugin is still under development, and might not work as expected or at all. <strong>Please read the security section below before using,</strong> so that you understand why only using this over HTTPS is so strongly recommended. Also, be sure to backup the database of the remote site before beginning a deployment.
 
 ### Requirements
 This plugin requires that on both sites you activate this plugin and the following dependent plugins:
@@ -33,6 +35,14 @@ Note: You can disable deployments from this tab. Doing so clears the keys. React
 * Magic /should/ happen. When completed, you should see a completed message and a remote site should have the local site's Pods.
 
 <em>If you see any failure messages please</em>: [Please report them](https://github.com/pods-framework/pods-deploy/issues) and include the `var_dump()` of the response that is generated.
+
+### Security
+The authentication system is still being evaluated. USE AT YOUR OWN RISK. Authentication is handled via public/private key pair method, which when used without HTTPS is vulnerable to a [MITM attack](http://en.wikipedia.org/wiki/Man-in-the-middle_attack).
+
+It is <strong>STRONGLY ADVISED that deployments be done over HTTPS</strong>. We recommend that you disable deployments on the remote site when not in use.
+
+The authentication system in use here grants access to the endpoints & routes that are required by the deployment process only. Therefore unauthorized authentication *should* not allow unauthorized access to other endpoints, but would still be bad.
+
 
 ### License & Copyright
 Copyright 2014  [Pods Foundation, Inc.](http://podsfoundation.org)
