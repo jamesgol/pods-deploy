@@ -1,22 +1,3 @@
-<?php
-	$keys = Pods_Deploy_Auth::get_keys( false );
-	$public_local = pods_v_sanitized( 'public', $keys, '' );
-	$private_local = pods_v_sanitized( 'private', $keys, '' );
-	$keys = Pods_Deploy_Auth::get_keys( true );
-	$public_remote = pods_v_sanitized( 'public', $keys, '' );
-	$private_remote = pods_v_sanitized( 'private', $keys, '' );
-	$deploy_active = Pods_Deploy_Auth::deploy_active();
-	if ( $deploy_active ) {
-		$key_gen_submit = __( 'Disable Deployments', 'pods-deploy' );
-		$key_gen_header = __( 'Click to revoke keys and prevent deployments to this site.', 'pods-deploy' );
-
-	}
-	else{
-		$key_gen_submit = __( 'Allow Deployments', 'pods-deploy' );
-		$key_gen_header = __( 'Click to generate new keys and allow deployments to this site', 'pods-deploy' );
-	}
-
-?>
 <div class="wrap pods-admin">
 	<form action="" method="post">
 
@@ -57,7 +38,7 @@
 		$tab = pods_v( 'tab', 'get', $default );
 		$tab = sanitize_title( $tab );
 
-		$data = compact( array( 'keys', 'public_local', 'private_local', 'public_remote', 'private_remote', 'deploy_active', 'key_gen_submit', 'key_gen_header' ) );
+		$data = compact( array( 'keys', 'public_local', 'private_local', 'public_remote', 'private_remote', 'deploy_active', 'key_gen_submit', 'key_gen_header', 'form_fields' ) );
 		echo pods_view( PODS_DEPLOY_DIR . 'ui/' . $tab . '.php', $data );
 		?>
 	</form>

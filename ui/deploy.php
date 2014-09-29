@@ -1,42 +1,42 @@
-<form action="?page=pods-deploy" method="post">
+<div id="pods-meta-box" class="postbox" style="width:100%;">
+	<form action="?page=pods-deploy" method="post">
 
-	<div id="icon-tools" class="icon32"><br></div>
-	<h2>
-		<?php _e( 'Deploy To Remote Site', 'pods-deploy' ); ?>
-	</h2>
+		<div id="icon-tools" class="icon32"><br></div>
+		<h2>
+			<?php _e( 'Deploy To Remote Site', 'pods-deploy' ); ?>
+		</h2>
+		<?php
+			$form = Pods_Form();
+			$fields[] =  $form::field( '_wpnonce', wp_create_nonce( 'pods-deploy' ), 'hidden' );
 
-	<p>
-		<label for="remote-url">
-			<?php _e( 'URL To Remote Site API', 'pods-deploy' ); ?>
-		</label>
-		<input type="text" class="" name="remote-url" id="remote-url" value="">
-		<p class="instruction">
-			<?php _e( 'For example "http://example.com/wp-json"', 'pods-deploy' ); ?>
+			foreach( $form_fields as $name => $field ) {
+
+					$fields[] = '<li>';
+					$fields[] = $form::label(
+						$name,
+						pods_v( 'label', $field, '' ),
+						pods_v( 'help', $field, '' )
+					);
+					$fields[] = $form::field(
+						$name,
+						pods_v( 'value', $field ),
+						pods_v( 'type',  $field, 'text' ),
+						pods_v( 'options', $field )
+					);
+					$fields[] = '</li>';
+
+			}
+
+			echo sprintf( '<ul>%1s</ul>', implode( $fields ) );
+		?>
+
+
+
+		<p class="submit">
+			<input type="submit" class="button button-primary" name="pods-deploy-submit" value="Deploy">
 		</p>
-	</p>
-
-	<p>
-		<label for="public-key">
-			<?php _e( 'Remote Site Public Key', 'pods-deploy' ); ?>
-		</label>
-		<input type="text" class="" name="public-key" id="public-key" value="<?php echo $public_local; ?>">
-		<p class="instruction">
-			<?php _e( 'Public key from remote site.', 'pods-deploy' ); ?>
-		</p>
-	</p>
-
-	<p>
-		<label for="private-key">
-			<?php _e( 'Remote Site Private Key', 'pods-deploy' ); ?>
-		</label>
-		<input type="text" class="" name="private-key" id="private-key" value="<?php echo $private_local; ?>">
-		<p class="instruction">
-			<?php _e( 'Private key from remote site.', 'pods-deploy' ); ?>
-		</p>
-	</p>
+	</form>
+</div>
+<?php
 
 
-	<p class="submit">
-		<input type="submit" class="button button-primary" name="pods-deploy-submit" value="Deploy">
-	</p>
-</form>

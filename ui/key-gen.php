@@ -6,7 +6,7 @@
 	</h2>
 
 	<input type="hidden" class="" name="allow-deploy" id="allow-deploy" value="<?php echo ! $deploy_active ?>">
-
+	<?php echo PodsForm::field( '_wpnonce', wp_create_nonce( 'pods-deploy' ), 'hidden' ); ?>
 
 	<p class="submit">
 		<input type="submit" class="button button-primary" name="pods-deploy-key-gen-submit" value="<?php echo $key_gen_submit; ?>">

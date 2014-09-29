@@ -28,70 +28,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 define( 'PODS_DEPLOY_VERSION', '0.1.0' );
 define( 'PODS_DEPLOY_DIR', plugin_dir_path( __FILE__ ) );
-define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2' );
+define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2.1' );
 define( 'PODS_DEPLOY_MIN_PODS_VERSION', '2.4.3' );
 
-
-/**
- * Callback for adding Pods Deploy to menus.
- *
- * Callback is in the activation function below.
- *
- * @since 0.3.0
- */
-function pods_deploy_tools_menu ( $admin_menus ) {
-
-	$admin_menus[ 'pods-deploy'] = array(
-		'label' => __( 'Pods Deploy', 'pods-deploy' ),
-		'function' => 'pods_deploy_handler',
-		'access' => 'manage_options'
-
-	);
-
-	return $admin_menus;
-
-}
-
-/**
- *
- */
-function pods_deploy_handler () {
-
-	if ( pods_v_sanitized( 'pods-deploy-submit', 'post') ) {
-		if ( ! pods_deploy_dependency_check() ) {
-			return;
-		}
-
-		$remote_url = pods_v_sanitized( 'remote-url', 'post', false, true );
-		$private_key = pods_v_sanitized( 'private-key', 'post' );
-		$public_key = pods_v_sanitized( 'public-key', 'post' );
-		if ( $remote_url && $private_key && $public_key ) {
-			Pods_Deploy_Auth::save_local_keys( $private_key, $public_key );
-
-			pods_deploy( $remote_url, $private_key, $public_key );
-		}
-		else{
-			_e( 'Keys and URL for remote site not set', 'pods-deploy' );
-			pods_error( var_dump( array($remote_url, $private_key, $public_key ) ) );
-		}
-	}
-	elseif( pods_v_sanitized( 'pods-deploy-key-gen-submit', 'post' ) ) {
-		$activate = pods_v_sanitized( 'allow-deploy', 'post' );
-		if ( $activate ) {
-			Pods_Deploy_Auth::allow_deploy();
-			Pods_Deploy_Auth::generate_keys();
-			include 'ui/main.php';
-		}
-		else {
-			Pods_Deploy_Auth::revoke_keys();
-		}
-
-		include_once( 'ui/main.php' );
-	}
-	else {
-		include_once( 'ui/main.php' );
-	}
-}
 
 /**
  * An array of dependencies to check for before loading class.
@@ -118,8 +57,11 @@ function pods_deploy_load_plugin() {
 
 	if ( pods_deploy_dependency_check() ) {
 		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-auth.php' );
+		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-ui.php' );
 		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy.php' );
-		add_filter( 'pods_admin_menu', 'pods_deploy_tools_menu' );
+
+		$ui = new Pods_Deploy_UI();
+		add_filter( 'pods_admin_menu', array( $ui, 'menu') );
 		add_action( 'init', 'pods_deploy_auth' );
 	}
 
@@ -142,15 +84,15 @@ function pods_deploy_dependency_check() {
 	}
 
 	if ( ! is_array( $fail ) ) {
-		if ( ! version_compare( PODS_JSON_API_VERSION, PODS_DEPLOY_MIN_JSON_API_VERSION ) <= 0 ) {
+		if ( ! version_compare( PODS_JSON_API_VERSION, PODS_DEPLOY_MIN_JSON_API_VERSION, '>=' ) ) {
 			$fail[] = sprintf( 'Pods Deploy requires Pods JSON API version %1s or later. Current version is %2s.', PODS_DEPLOY_MIN_JSON_API_VERSION, PODS_JSON_API_VERSION );
 		}
 
-		if ( ! version_compare( PODS_VERSION, PODS_DEPLOY_MIN_PODS_VERSION ) <= 0 ) {
+		if ( ! version_compare( PODS_VERSION, PODS_DEPLOY_MIN_PODS_VERSION, '>=' ) ) {
 			$fail[] = sprintf( 'Pods Deploy requires Pods version %1s or later. Current version is %2s.', PODS_DEPLOY_MIN_PODS_VERSION, PODS_VERSION );
 		}
 
-		if ( version_compare( PHP_VERSION, '5.3.0' ) <= 0 ) {
+		if ( ! version_compare( PHP_VERSION, '5.3.0', '>=' ) ) {
 			$fail[] = sprintf( 'Pods Deploy requires PHP version %1s or later. Current version is %2s.', '5.3.0', PHP_VERSION );
 
 		}
@@ -184,22 +126,13 @@ function pods_deploy_dependency_check() {
  *
  * @param $remote_url
  */
-function pods_deploy( $remote_url = false, $private_key, $public_key ) {
+function pods_deploy( $params ) {
 
-	if ( ! $remote_url  ) {
-		$remote_url = get_option( 'pods_deploy_remote_url' );
-	}
+	$params[ 'remote_url' ] = pods_v( 'remote_url', $params );
+	$params[ 'public_key' ] = pods_v( 'public_key', $params );
+	$params[ 'private_key' ] = pods_v( 'private_key', $params );
 
-	if ( ! $remote_url ) {
-		if (  is_admin() ) {
-			//@todo admin nag
-		}
-
-		return;
-
-	}
-
-	return Pods_Deploy::deploy( $remote_url, $private_key, $public_key );
+	return Pods_Deploy::deploy( $params );
 
 }
 
@@ -209,7 +142,7 @@ function pods_deploy( $remote_url = false, $private_key, $public_key ) {
  * @since 0.3.0
  */
 function pods_deploy_auth() {
-	if ( get_option( Pods_Deploy_Auth::$allow_option_name, true ) ) {
+	if ( class_exists( 'Pods_Deploy_Auth' ) && get_option( Pods_Deploy_Auth::$allow_option_name, false ) ) {
 
 		include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-auth.php' );
 		
@@ -218,4 +151,37 @@ function pods_deploy_auth() {
 	}
 
 }
+
+/**
+ * Output a list of field names.
+ *
+ * @since 0.4.0
+ *
+ * @return array|mixed
+ */
+function pods_deploy_pod_names() {
+	$api = pods_api();
+	$params[ 'names' ] = true;
+	$pod_names = $api->load_pods( $params );
+
+	return $pod_names;
+
+}
+
+/**
+ * Deactivation
+ *
+ * Disables deployments to this site and erases the stored keys.
+ *
+ * @since 0.4.0
+ */
+register_deactivation_hook( __FILE__, 'pods_deploy_deactivate' );
+function pods_deploy_deactivate() {
+	include_once( PODS_DEPLOY_DIR . 'class-pods-deploy-auth.php' );
+	Pods_Deploy_Auth::revoke_keys();
+	Pods_Deploy_Auth::clear_local_keys();
+
+}
+
+
 
