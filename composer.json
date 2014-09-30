@@ -13,6 +13,10 @@
             "role" : "Lead Developer"
         },
         {
+            "name": "James Golovich",
+            "role" : "Developer"
+        },
+        {
             "name": "Phil Lewis",
             "email": "Phil@Pods.io",
             "role" : "Developer"
@@ -41,6 +45,6 @@
         "php": ">=5.3",
         "composer/installers": "~1.0",
         "wpackagist-plugin/pods": ">=2.4.3",
-        "pods-framework/pods-json-api": ">=0.2"
+        "pods-framework/pods-json-api": ">=0.2.1"
     }
 }
