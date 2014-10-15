@@ -4,17 +4,35 @@ class Pods_Deploy {
 
 	public static $elapsed_time;
 
-	public static function deploy( $deploy_params ) {
-		$remote_url = pods_v( 'remote_url', $deploy_params );
-		$public_key = pods_v( 'public_key', $deploy_params );
-		$private_key = pods_v( 'private_key', $deploy_params );
-		$timeout = pods_v( 'timeout', $deploy_params, 60 );
+	public static $settings;
 
-		$token = Pods_Deploy_Auth::generate_token( $public_key, $private_key );
+	public static $remote_url;
+
+	private static $public_key;
+
+	private static $private_key;
+
+	public static $timeout;
+
+	public static $pods;
+
+	private static $token;
+
+
+	public static function deploy( $deploy_params ) {
+		$remote_url =self::$remote_url = pods_v( 'remote_url', $deploy_params );
+		$public_key = self::$public_key = pods_v( 'public_key', $deploy_params );
+		$private_key = self::$private_key = pods_v( 'private_key', $deploy_params );
+		$timeout = self::$timeout = pods_v( 'timeout', $deploy_params, 60 );
+		$pods = self::$pods = pods_v( 'pods', $deploy_params, self::pod_names() );
+
+		$token = self::$token = Pods_Deploy_Auth::generate_token( $public_key, $private_key );
 		
 		if ( is_null( $pod_names = pods_v( 'pods', $deploy_params ) ) ) {
 			$pod_names = self::pod_names();
 		}
+
+		self::$pods = $pod_names;
 
 		if ( ! $remote_url ||  ! $public_key || ! $private_key ) {
 			echo self::output_message( __( 'Invalid parameters:( You shall not pass! ', 'pods-deploy' ) );
@@ -23,7 +41,7 @@ class Pods_Deploy {
 			
 		}
 
-		$deploy_components = self::do_deploy_components( pods_v( 'components', $deploy_params ), $timeout, $remote_url, $public_key, $token );
+		$deploy_components = self::do_deploy_components( pods_v( 'components', $deploy_params ) );
 
 		if ( false == $deploy_components ) {
 			echo self::output_message( __( 'Components could not be activated on remote site. Deployment aborted.', 'pods-deploy' ) );
@@ -47,43 +65,34 @@ class Pods_Deploy {
 			'helpers' => true,
 		);
 
-		// Proof of concept: Deal with one pod at a time, need to take list from params/UI
-		$api = pods_api();
-		$pods = $api->load_pods();
-
 		foreach ( $pods as $pod ) {
 			$single = array( 'pods' => array( $pod[ 'id' ] ));
-			self::do_deploy( $single, $deploy_params, $token );
+			self::do_deploy( $single );
 		}
 
 		// Deploy everything other than the pods
-		self::do_deploy( $params, $deploy_params, $token );
+		self::do_deploy( $params );
 
-		self::do_deploy_relationships( $deploy_params, $pod_names, $token );
+		self::do_deploy_relationships( $pod_names );
 
 	}
 
-	private static function do_deploy( $params, $deploy_params, $token ) {
-		$remote_url = pods_v( 'remote_url', $deploy_params );
-		$public_key = pods_v( 'public_key', $deploy_params );
-		$timeout = pods_v( 'timeout', $deploy_params, 60 );
+	private static function do_deploy( $params ) {
 
 		$fail = false;
 
 		$data = Pods_Migrate_Packages::export( $params );
 
-		$url = trailingslashit( $remote_url ) . 'pods-components?package';
+		$url = trailingslashit( self::$remote_url ) . 'pods-components?package';
 
-
-
-		$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $url );
+		$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
 
 		$data = json_encode( $data );
 
 		$response = wp_remote_post( $url, array (
 				'method'    => 'POST',
 				'body'      => $data,
-				'timeout'   => $timeout,
+				'timeout'   => self::$timeout,
 			)
 		);
 
@@ -107,11 +116,7 @@ class Pods_Deploy {
 
 	}
 
-	private static function do_deploy_relationships( $deploy_params, $pod_names, $token ) {
-
-		$remote_url = pods_v( 'remote_url', $deploy_params );
-		$public_key = pods_v( 'public_key', $deploy_params );
-		$timeout = pods_v( 'timeout', $deploy_params, 60 );
+	private static function do_deploy_relationships( $pod_names ) {
 
 		$fail = false;
 
@@ -120,15 +125,15 @@ class Pods_Deploy {
 
 		$pod_names = array_flip( $pod_names );
 		$data = Pods_Deploy::get_relationships();
-		$pods_api_url = trailingslashit( $remote_url ) . 'pods-api/';
+		$pods_api_url = trailingslashit( self::$remote_url ) . 'pods-api/';
 
 		foreach( $pod_names as $pod_name ) {
 			$url = $pods_api_url. "{$pod_name}/update_rel";
-			$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $url );
+			$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
 			$responses[] = $response = wp_remote_post( $url, array (
 					'method'      => 'POST',
 					'body'        => json_encode( $data ),
-					'timeout'     => $timeout,
+					'timeout'     => self::$timeout,
 				)
 			);
 
@@ -157,8 +162,7 @@ class Pods_Deploy {
 
 	}
 
-	private static function do_deploy_components( $components = null, $timeout, $remote_url, $public_key, $token ) {
-
+	private static function do_deploy_components( $components = null ) {
 
 		if ( true === $components ) {
 
@@ -174,14 +178,14 @@ class Pods_Deploy {
 			$components[ 'migrate-packages' ] = 'Migrate Packages';
 		}
 
-		$url = trailingslashit( $remote_url ) . 'pods-components';
+		$url = trailingslashit(  self::$remote_url ) . 'pods-components';
 
 
-		$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $url );
+		$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
 
 		$response = wp_remote_post( $url, array (
 				'method'    => 'GET',
-				'timeout'   => $timeout,
+				'timeout'   => self::$timeout,
 			)
 		);
 
@@ -211,7 +215,7 @@ class Pods_Deploy {
 		$response = wp_remote_post( $url, array (
 				'method'    => 'PUT',
 				'body'      => json_encode( $data ),
-				'timeout'   => $timeout,
+				'timeout'   => self::$timeout,
 			)
 		);
 
@@ -398,6 +402,9 @@ class Pods_Deploy {
 			$hours = (int) ( $time/60/60);
 			$minutes = (int)( $time/60)-$hours*60;
 			$seconds = (int) $time-$hours*60*60-$minutes*60;
+		}
+		else{
+			$seconds = $time;
 		}
 
 		return $seconds;
