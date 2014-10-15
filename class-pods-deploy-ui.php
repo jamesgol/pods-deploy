@@ -205,6 +205,4 @@ class Pods_Deploy_UI {
 
 	}
 
-	af
-
 } 
