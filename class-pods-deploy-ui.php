@@ -72,10 +72,10 @@ class Pods_Deploy_UI {
 				 * @param array $params Full params array.
 				 *
 				 * @return array $Pods
-				 *                
+				 *
 				 * @since 0.5.0
 				 */
-				$params[ 'pods' ] = apply_filters( 'pods_deplyo_pods_to_deploy', $params[ 'pod' ], $params );
+				$params[ 'pods' ] = apply_filters( 'pods_deploy_pods_to_deploy', $params[ 'pods' ], $params );
 
 				if ( ! pods_v_sanitized( 'deploy-components', 'post' )  ) {
 					$params[ 'components' ] = false;
@@ -83,9 +83,6 @@ class Pods_Deploy_UI {
 				else {
 					$params[ 'components' ] = true;
 				}
-
-
-
 
 				pods_deploy( $params );
 
