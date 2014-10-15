@@ -55,14 +55,21 @@ class Pods_Deploy_UI {
 				);
 
 				$pod_names = $this->pod_names();
+
+				$pod_names_set = false;
 				if ( is_array( $pod_names ) ) {
 					foreach ( $pod_names as $name => $label ) {
 						if ( pods_v_sanitized( $name, 'POST' ) ) {
 							$params[ 'pods' ][ ] = $name;
+							$pod_names_set = true;
 						}
 
 					}
 
+				}
+
+				if ( ! $pod_names_set ) {
+					$params[ 'pods' ] = $pod_names;
 				}
 
 				/**
