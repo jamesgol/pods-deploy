@@ -16,10 +16,10 @@
 <?php if ( $deploy_active ) : ?>
 	<div id="current-keys">
 		<p>
-			<?php _e( sprintf( 'Public Key: %1s', $public_remote, 'pods-deploy' ) ); ?>
+			<?php _e( sprintf( 'Public Key: %1s', $public_remote ), 'pods-deploy' ); ?>
 		</p>
 		<p>
-			<?php _e( sprintf( 'Private Key: %1s', $private_remote, 'pods-deploy' ) ); ?>
+			<?php _e( sprintf( 'Private Key: %1s', $private_remote ), 'pods-deploy' ); ?>
 		</p>
 		<p>
 			<?php _e( sprintf( "This root URL for this site's API is: %1s", json_url() ), 'pods-deploy' ); ?>
