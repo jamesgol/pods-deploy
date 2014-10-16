@@ -285,27 +285,25 @@ class Pods_Deploy {
 
 		$remote_components = json_decode( wp_remote_retrieve_body( $response ) );
 
-
+		var_dump( $components );
 
 		if ( ! is_object( $remote_components ) ) {
-			$data = array( 'migrate-packages' );
+			$remote_components = array ( 'migrate-packages' );
 		}
-		else {
-			$data = array ();
-			foreach ( $components as $component => $label ) {
 
-				if ( false == pods_v( $component, $remote_components ) ) {
+		$data = array ();
+		foreach ( $components as $component => $label ) {
 
-					$data[ ] = $component;
-				}
+			if ( false == pods_v( $component, $remote_components ) ) {
 
+				$data[ ] = $component;
 			}
+
 		}
 
 		if ( ! empty( $data ) ) {
 			$data = array ( 'activate' => $data );
 		}
-
 
 		$response = wp_remote_post( $url, array (
 				'method'    => 'PUT',
