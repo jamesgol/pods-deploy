@@ -160,9 +160,16 @@ function pods_deploy_auth() {
  * @return array|mixed
  */
 function pods_deploy_pod_names() {
+	$pod_names = array();
 	$api = pods_api();
 	$params[ 'names' ] = true;
-	$pod_names = $api->load_pods( $params );
+	$pods = $api->load_pods( $params );
+	if ( is_array( $pods ) && ! empty( $pods ) ) {
+		$pods = array_flip( $pods );
+		foreach ( $pods as $pod ) {
+			$pod_names[ ] = $pod;
+		}
+	}
 
 	return $pod_names;
 
