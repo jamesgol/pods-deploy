@@ -31,6 +31,14 @@ define( 'PODS_DEPLOY_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2.2' );
 define( 'PODS_DEPLOY_MIN_PODS_VERSION', '2.4.3' );
 
+if ( ! defined( 'PODS_DEPLOY_DEV_MODE' ) ) {
+	define( 'PODS_DEPLOY_DEV_MODE', false );
+}
+
+if ( ! defined( 'PODS_DEPLOY_DONT_OBSCURE_KEYS' ) ) {
+	define( 'PODS_DEPLOY_DONT_OBSCURE_KEYS', false );
+}
+
 
 /**
  * An array of dependencies to check for before loading class.

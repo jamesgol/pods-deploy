@@ -477,19 +477,52 @@ class Pods_Deploy {
 	/**
 	 * Output a message during deployment, with the time elpased since deploy started.
 	 *
-	 * @param  string   $message Message to show.
-	 * @param string    $url Optional. The URL to show for message.
+	 * @param string   $message Message to show.
+	 * @param string   $url Optional. The URL to show for message.
+	 * @param string|bool   $response Optional. The response from the request. Optional. If it's provided and PODS_DEPLOY_DEV_MODE it will be outputted.
 	 *
 	 * @since 0.3.0
 	 *
 	 * @return string
 	 */
-	public static function output_message( $message, $url = '' ){
+	public static function output_message( $message, $url = '', $response = false ){
 		if ( is_string( $message ) ) {
 			$time = self::elapsed_time();
 
-			return sprintf( '<div class="pods-deploy-message"><p>%1s</p> <span="pods-deploy-message-time">Elapsed time: %2s</span>  <span="pods-deploy-message-url">%3s</span></div>', $message, $time, $url );
+			$url = self::obscure_keys( $url );
+
+			$out[] = sprintf( '<div class="pods-deploy-message"><p>%1s</p> <span="pods-deploy-message-time">Elapsed time: %2s</span>  <span="pods-deploy-message-url">%3s</span></div>', $message, $time, $url );
+
+			if ( PODS_DEPLOY_DEV_MODE && $response ) {
+				$out[] = '<pre class="pods-deploy-debug">' . print_r( $response ) . '</pre>';
+			}
+
+			return sprintf( '<div class="pods-deploy-report">%1s</div>', implode( $out ) );
+
 		}
+
+	}
+
+	/**
+	 * Remove keys/tokens from URLs
+	 *
+	 * Can be disabled by defining PODS_DEPLOY_DONT_OBSCURE_KEYS as true.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param string $url
+	 *
+	 * @return string
+	 */
+	public static function obscure_keys( $url ) {
+		if ( PODS_DEPLOY_DONT_OBSUCURE_KEYS ) {
+			return $url;
+		}
+
+		$remove = strstr( $url, 'pods-deploy-key=');
+		$url = str_replace($remove, 'KEYS-REMOVED-FOR-SECURITY', $url );
+
+		return $url;
 
 	}
 
