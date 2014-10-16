@@ -103,28 +103,42 @@ class Pods_Deploy {
 			return new WP_Error( 'pods-deploy-need-packages',  __( 'You must activate the Packages Component on both the site sending and receiving this package.', 'pods-deploy' ) );
 		}
 
+		/**
+		 * If true, all Pods and Pages, Templates & Helpers will be migrated in one package.
+		 *
+		 * Means less request, but potentially a much bigger request.
+		 *
+		 * @param bool $all_at_once
+		 *
+		 * @since 0.5.0
+		 */
+		$all_at_once = apply_filters( 'pods_deploy_deploy_in_one_package', false );
+
 		//@todo add options for these params
 		$params = array(
-		//	'pods' => true,
 			'templates' => true,
 			'page' => true,
 			'helpers' => true,
 		);
 
-		foreach ( $pods as $pod ) {
-			$pod_id = self::pod_id( $pod );
+		if ( ! $all_at_once ) {
+			foreach ( $pods as $pod ) {
+				$pod_id = self::pod_id( $pod );
 
-			if ( 0 < $pod_id  ) {
-				$single = array ( 'pods' => $pod_id );
-				self::do_deploy( $single );
-			}
-			else{
-				self::output_message( __( sprintf( 'The Pod ID for the Pod could not be determined for %1s, which is highly suspicious.', $pod ), 'pods-deploy' )  );
-			}
+				if ( 0 < $pod_id ) {
+					$single = array ( 'pods' => $pod_id );
+					self::do_deploy( $single );
+				} else {
+					self::output_message( __( sprintf( 'The Pod ID for the Pod could not be determined for %1s, which is highly suspicious.', $pod ), 'pods-deploy' ) );
+				}
 
+			}
+		}
+		else {
+			$params[ 'pods' ] = $pods;
 		}
 
-		// Deploy everything other than the pods
+
 		self::do_deploy( $params );
 
 		self::do_deploy_relationships();
