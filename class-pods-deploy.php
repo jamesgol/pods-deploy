@@ -358,7 +358,7 @@ class Pods_Deploy {
 				foreach ( $local_fields as $field_name => $field ) {
 					if ( '' !== ( $sister_id = pods_v( 'sister_id', $field ) ) ) {
 
-						$relationships[ pods_v( 'name', $field ) ] = array (
+						$relationships[ $pod_name . '_' . pods_v( 'name', $field ) ] = array (
 							'from' => array (
 								'pod_name'   => $pod_name,
 								'field_name' => pods_v( 'name', $field ),
