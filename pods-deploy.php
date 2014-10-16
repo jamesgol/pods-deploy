@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 define( 'PODS_DEPLOY_VERSION', '0.5.0' );
 define( 'PODS_DEPLOY_DIR', plugin_dir_path( __FILE__ ) );
-define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2.1' );
+define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2.2' );
 define( 'PODS_DEPLOY_MIN_PODS_VERSION', '2.4.3' );
 
 
