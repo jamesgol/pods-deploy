@@ -1,5 +1,5 @@
 <div id="pods-meta-box" class="postbox" style="width:100%;padding:1%">
-	<form action="?page=pods-deploy" method="post">
+	<form action="?page=pods-deploy" method="post" class="pods-submittable">
 
 		<div id="icon-tools" class="icon32"><br></div>
 		<h2>
@@ -28,6 +28,7 @@
 			}
 
 			echo sprintf( '<ul>%1s</ul>', implode( $fields ) );
+			pods_view( PODS_DEPLOY_DIR . 'ui/pods-wizard.php' );
 		?>
 
 
