@@ -216,5 +216,15 @@ function pods_deploy_deactivate() {
 
 }
 
+add_action( 'admin_enqueue_scripts', 'pods_deploy_style' );
+function pods_deploy_style($hook) {
+
+	if ( 'pods-admin_page_pods-deploy' != $hook ) {
+		return;
+	}
+
+	wp_enqueue_style( 'my_custom_script', plugin_dir_url( __FILE__ ) . 'ui/css/pods-deploy.css' );
+}
+
 
 

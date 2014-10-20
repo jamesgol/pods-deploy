@@ -1,0 +1,45 @@
+.pods-deploy-ui {
+    width:100%;
+    padding:1%;
+}
+
+.pods-package-import-group, .keys-and-url  {
+    padding: 1%;
+    margin-right: 1%;
+}
+
+.keys-and-url.stuffbox {
+    margin: 1%;
+}
+
+.pods-package-import-group {
+    margin-right: 2%;
+}
+
+.keys-and-url label {
+    width: 25%;
+    margin-right: 5%;
+    float: left;
+}
+
+.keys-and-url input {
+    width: 70%;
+    float: right;
+}
+
+input.pods-form-ui-field-type-boolean {
+    float: left;
+    width: inherit;
+}
+
+label.pods-form-ui-label.pods-form-ui-label-pods-form-ui-deploy-components {
+    display: none;
+}
+
+.keys-and-url ul:last-child {
+    clear: both;
+}
+
+.clearfix {
+    clear:both;
+}

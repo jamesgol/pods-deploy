@@ -11,7 +11,7 @@ $pod_helpers = $api->load_helpers();
 
 ?>
 
-<div class="pods-wizard-option-content" id="pods-wizard-export">
+<div class="pods-wizard-option-content pods-deploy-ui" id="pods-wizard-export">
 	<div class="pods-wizard-content">
 		<p><?php _e( 'Packages allow you to import/export your Pods, Fields, and other settings between any Pods sites.', 'pods' ); ?></p>
 	</div>

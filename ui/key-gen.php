@@ -1,4 +1,4 @@
-<div id="pods-meta-box" class="postbox" style="width:100%;padding:1%">
+<div id="pods-meta-box" class="postbox pods-deploy-ui">
 	<form action="?page=pods-deploy" method="post">
 
 		<div id="icon-tools" class="icon32"><br></div>
