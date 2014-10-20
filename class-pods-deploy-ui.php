@@ -113,9 +113,9 @@ class Pods_Deploy_UI {
 
 		if ( ! empty( $type ) && isset( $_POST[ $type ] ) ) {
 			if ( is_array( $valid_list ) ) {
-				foreach ( $valid_list as $name ) {
-					if ( pods_v_sanitized( $name, $_POST[ $type ] ) ) {
-						$results[ ] = $name;
+				foreach ( $valid_list as $id => $name ) {
+					if ( pods_v_sanitized( $id, $_POST[ $type ] ) ) {
+						$results[ $id ] = $name;
 					}
 				}
 			}

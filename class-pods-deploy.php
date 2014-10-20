@@ -118,15 +118,17 @@ class Pods_Deploy {
 
 		if ( ! $all_at_once ) {
 			foreach ( $deploy_types as $type => $type_arr ) {
-				foreach ( $type_arr as $type_id ) {
-					$single = array( $type => $type_id );
-					self::do_deploy( $single );
+				foreach ( $type_arr as $type_id => $type_name ) {
+					self::do_deploy( array( $type => array( $type_name => $type_id ) ) );
 				}
-
 			}
 		}
 		else {
-			self::do_deploy( $deploy_types );
+			$flipped_types = array();
+			foreach ( $deploy_types as $type => $type_arr ) {
+				$flipped_types[ $type ] = array_flip( $type_arr );
+			}
+			self::do_deploy( $flipped_types );
 		}
 
 		self::do_deploy_relationships( $deploy_types );
@@ -158,14 +160,15 @@ class Pods_Deploy {
 		);
 
 		$pod_name = '';
-		if ( ! is_null( $pods = pods_v( 'pods', $params ) ) ) {
-			if ( is_array( $pods ) ) {
-				$pod_name = pods_serial_comma( self::pod_name_by_array( $pods ) );
-			}
-			else {
-				$pod_name = self::pod_name( $pods );
+		$pod_list = array();
+		foreach ( $params as $param ) {
+			if ( is_array( $param ) ) {
+				$pod_list = array_merge( array_flip( $param ), $pod_list );
+			} else {
+				array_push( $pod_list, self::pod_name( $param ) );
 			}
 		}
+		$pod_name = pods_serial_comma( $pod_list );
 
 		if ( self::check_return( $response ) ) {
 			echo self::output_message( __( sprintf( 'Package deployed successfully for %1s.', $pod_name ), 'pods-deploy' ), $url );
@@ -200,10 +203,15 @@ class Pods_Deploy {
 
 		$responses = array();
 
-		$pod_ids = $deploy_types[ 'pods' ];
-
 		$data = Pods_Deploy::get_relationships( $deploy_types );
+
+		if ( $data === false ) {
+			// Don't try to deploy_relationships if there aren't any
+			return false;
+		}
+
 		$pods_api_url = trailingslashit( self::$remote_url ) . 'pods-api/';
+		$pod_ids = $deploy_types[ 'pods' ];
 
 		foreach( $pod_ids as $pod_id ) {
 			$pod_name = self::pod_name( $pod_id );
@@ -632,7 +640,7 @@ class Pods_Deploy {
 	}
 
 	/**
-	 * Set/Get a Pod's name by ID
+	 * Get a Pod's name by ID
 	 *
 	 * @param $id
 	 *
@@ -640,48 +648,14 @@ class Pods_Deploy {
 	 *
 	 * @since 0.5.0
 	 */
-	public static function pod_name( $id = null, $name = null ) {
-		if ( !empty( $id ) ) {
-			if ( !empty( $name ) ) {
-				// Set the pod name in cache
-				self::$pod_names[ $id ] = $name;
-				return $name;
-			} else {
-				// Get the pod name
-				if ( !empty( self::$pod_names[ $id ] ) ) {
-					return self::$pod_names[ $id ];
-				} else {
-					// Lookup all of the pods and cache the names
-					$api = pods_api( );
-					$pods = $api->load_pods( );
-					foreach ( $pods as $pod ) {
-						self::$pod_names[ $pod[ 'id' ] ] = $pod[ 'name' ];
-					}
-
-					return (string) self::$pod_names[ $id ];
-
-				}
+	public static function pod_name( $id = null ) {
+		foreach ( self::$deploy_types as $type ) {
+			if ( !empty( $type[ $id ] ) ) {
+				return $type[ $id ];
 			}
 		}
+
 		return null;
-	}
-
-	/**
-	 * Translate an array of pod IDs to names
-	 *
-	 * @param $ids
-	 *
-	 * @return array
-	 *
-	 * @since 0.5.0
-	 */
-	public static function pod_name_by_array( $ids, $name = null ) {
-		$new = array();
-
-		foreach ( $ids as $id ) {
-			$new[] = self::pod_name( $id );
-		}
-		return $new;
 	}
 
 

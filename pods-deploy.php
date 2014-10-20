@@ -167,7 +167,7 @@ function pods_deploy_auth() {
  *
  * @return array|mixed
  */
-function pods_deploy_types() {
+function pods_deploy_types( $key = 'id', $value = 'name' ) {
 	$names = array();
 
 	$api = pods_api();
@@ -175,26 +175,26 @@ function pods_deploy_types() {
 	$pods = $api->load_pods( array( 'fields' => false ) );
 	if ( is_array( $pods ) && !empty( $pods ) ) {
 		foreach ( $pods as $item ) {
-			$names['pods'][] = $item['id'];
+			$names[ 'pods' ][ $item[ $key ] ] = $item[ $value ];
 		}
 	}
 	$pod_templates = $api->load_templates( );
 	if ( is_array( $pod_templates ) && !empty( $pod_templates ) ) {
 		foreach ( $pod_templates as $item ) {
-			$names[ 'templates' ][] = $item[ 'id' ];
+			$names[ 'templates' ][ $item[ $key ] ] = $item[ $value ];
 		}
 	}
 	$pod_pages = $api->load_pages( );
 	if ( is_array( $pod_pages ) && !empty( $pod_pages ) ) {
 		foreach ( $pod_pages as $item ) {
-			$names[ 'pages' ][] = $item[ 'id' ];
+			$names[ 'pages' ][ $item[ $key ] ] = $item[ $value ];
 		}
 	}
 
 	$pod_helpers = $api->load_helpers( );
 	if ( is_array( $pod_helpers ) && !empty( $pod_helpers ) ) {
 		foreach ( $pod_helpers as $item ) {
-			$names[ 'helpers' ][] = $item[ 'id' ];
+			$names[ 'helpers' ][ $item[ $key ] ] = $item[ $value ];
 		}
 	}
 
