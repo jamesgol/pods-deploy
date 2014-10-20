@@ -51,12 +51,19 @@ class Pods_Deploy {
 	public static $timeout;
 
 	/**
-	 * @var array Pods to deploy
+	 * @var array Pod types to deploy
 	 *
 	 * @since 0.5.0
 	 */
-	public static $pods;
+	public static $deploy_types;
 
+
+	/**
+	 * @var array Pod id to name mapping
+	 *
+	 * @since 0.5.0
+	 */
+	public static $pod_names = array();
 
 	/**
 	 * The deploy sequence
@@ -70,15 +77,9 @@ class Pods_Deploy {
 		$public_key = self::$public_key = pods_v( 'public_key', $deploy_params );
 		$private_key = self::$private_key = pods_v( 'private_key', $deploy_params );
 		$timeout = self::$timeout = pods_v( 'timeout', $deploy_params, 60 );
-		$pods = self::$pods = pods_v( 'pods', $deploy_params, self::pod_names() );
+		$deploy_types = self::$deploy_types = pods_v( 'deploy_types', $deploy_params, self::pod_types() );
 
 		$token = self::$token = Pods_Deploy_Auth::generate_token( $public_key, $private_key );
-		
-		if ( is_null( $pod_names = pods_v( 'pods', $deploy_params ) ) ) {
-			$pod_names = self::pod_names();
-		}
-
-		self::$pods = $pod_names;
 
 		if ( ! $remote_url ||  ! $public_key || ! $private_key ) {
 			echo self::output_message( __( 'Invalid parameters:( You shall not pass! ', 'pods-deploy' ) );
@@ -113,35 +114,22 @@ class Pods_Deploy {
 		 * @since 0.5.0
 		 */
 		$all_at_once = apply_filters( 'pods_deploy_deploy_in_one_package', false );
-
-		//@todo add options for these params
-		$params = array(
-			'templates' => true,
-			'page' => true,
-			'helpers' => true,
-		);
+		// @todo Should this be an option on the form
 
 		if ( ! $all_at_once ) {
-			foreach ( $pods as $pod ) {
-				$pod_id = self::pod_id( $pod );
-
-				if ( 0 < $pod_id ) {
-					$single = array ( 'pods' => $pod_id );
+			foreach ( $deploy_types as $type => $type_arr ) {
+				foreach ( $type_arr as $type_id ) {
+					$single = array( $type => $type_id );
 					self::do_deploy( $single );
-				} else {
-					self::output_message( __( sprintf( 'The Pod ID for the Pod could not be determined for %1s, which is highly suspicious.', $pod ), 'pods-deploy' ) );
 				}
 
 			}
 		}
 		else {
-			$params[ 'pods' ] = $pods;
+			self::do_deploy( $deploy_types );
 		}
 
-
-		self::do_deploy( $params );
-
-		self::do_deploy_relationships();
+		self::do_deploy_relationships( $deploy_types );
 
 	}
 
@@ -172,10 +160,10 @@ class Pods_Deploy {
 		$pod_name = '';
 		if ( ! is_null( $pods = pods_v( 'pods', $params ) ) ) {
 			if ( is_array( $pods ) ) {
-				$pod_name = pods_serial_comma( $pods );
+				$pod_name = pods_serial_comma( self::pod_name_by_array( $pods ) );
 			}
 			else {
-				$pod_name = $pods;
+				$pod_name = self::pod_name( $pods );
 			}
 		}
 
@@ -206,18 +194,19 @@ class Pods_Deploy {
 	 *
 	 * @return bool
 	 */
-	private static function do_deploy_relationships( ) {
+	private static function do_deploy_relationships( $deploy_types = null ) {
 
 		$fail = false;
 
 		$responses = array();
 
-		$pod_names = self::$pods;
+		$pod_ids = $deploy_types[ 'pods' ];
 
-		$data = Pods_Deploy::get_relationships();
+		$data = Pods_Deploy::get_relationships( $deploy_types );
 		$pods_api_url = trailingslashit( self::$remote_url ) . 'pods-api/';
 
-		foreach( $pod_names as $pod_name ) {
+		foreach( $pod_ids as $pod_id ) {
+			$pod_name = self::pod_name( $pod_id );
 			$url = $pods_api_url. "{$pod_name}/update_rel";
 			$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
 			$responses[] = $response = wp_remote_post( $url, array (
@@ -241,7 +230,7 @@ class Pods_Deploy {
 						, 'pods-deploy' ),
 					$url
 				);
-
+				var_dump( $data );
 				var_dump( $response );
 
 			}
@@ -346,30 +335,41 @@ class Pods_Deploy {
 	 *
 	 * @return bool
 	 */
-	public static function get_relationships(){
+	public static function get_relationships( $deploy_types = null ){
 		$relationships = false;
+
+		if ( empty( $deploy_types ) ) {
+			return false;
+		}
+
+		if ( empty( $deploy_types[ 'pods' ] ) ) {
+			// Right now only pods have relationships, but maybe in the future other types will have them also
+			return false;
+		}
 
 		$api = pods_api();
 		$pods = $api->load_pods();
 
 		foreach( $pods as $pod ) {
-			$pod_name = pods_v( 'name', $pod );
-			if ( ! is_null( $local_fields = pods_v( 'fields', $pod ) ) ) {
-				foreach ( $local_fields as $field_name => $field ) {
-					if ( '' !== ( $sister_id = pods_v( 'sister_id', $field ) ) ) {
+			if ( in_array( $pod[ 'id' ], $deploy_types[ 'pods' ] ) )  {
+				$pod_name = pods_v( 'name', $pod );
+				self::pod_name( $pod[ 'id' ], $pod_name );
+				if ( ! is_null( $local_fields = pods_v( 'fields', $pod ) ) ) {
+					foreach ( $local_fields as $field_name => $field ) {
+						if ( '' !== ( $sister_id = pods_v( 'sister_id', $field ) ) ) {
 
-						$relationships[ $pod_name . '_' . pods_v( 'name', $field ) ] = array (
-							'from' => array (
-								'pod_name'   => $pod_name,
-								'field_name' => pods_v( 'name', $field ),
-							),
-							'to'   => self::find_by_id( $sister_id, $pods ),
-						);
+							$relationships[ $pod_name . '_' . pods_v( 'name', $field ) ] = array(
+								'from' => array(
+									'pod_name'   => $pod_name,
+									'field_name' => pods_v( 'name', $field ),
+								),
+								'to'   => self::find_by_id( $sister_id, $pods ),
+							);
+
+						}
 
 					}
-
 				}
-
 
 			}
 
@@ -429,7 +429,7 @@ class Pods_Deploy {
 				$search = array_search( $id, $fields );
 
 				if ( $search ) {
-
+					self::pod_name( $id, $pod_name );
 					return array(
 						'pod_name' => $pod_name,
 						'field_name' => $search,
@@ -515,7 +515,7 @@ class Pods_Deploy {
 	 * @return string
 	 */
 	public static function obscure_keys( $url ) {
-		if ( PODS_DEPLOY_DONT_OBSUCURE_KEYS ) {
+		if ( PODS_DEPLOY_DONT_OBSCURE_KEYS ) {
 			return $url;
 		}
 
@@ -579,9 +579,9 @@ class Pods_Deploy {
 	 *
 	 * @return array|mixed
 	 */
-	static function pod_names() {
+	static function pod_types() {
 
-		return pods_deploy_pod_names();
+		return pods_deploy_types();
 
 	}
 
@@ -631,5 +631,58 @@ class Pods_Deploy {
 
 	}
 
+	/**
+	 * Set/Get a Pod's name by ID
+	 *
+	 * @param $id
+	 *
+	 * @return string
+	 *
+	 * @since 0.5.0
+	 */
+	public static function pod_name( $id = null, $name = null ) {
+		if ( !empty( $id ) ) {
+			if ( !empty( $name ) ) {
+				// Set the pod name in cache
+				self::$pod_names[ $id ] = $name;
+				return $name;
+			} else {
+				// Get the pod name
+				if ( !empty( self::$pod_names[ $id ] ) ) {
+					return self::$pod_names[ $id ];
+				} else {
+					// Lookup all of the pods and cache the names
+					$api = pods_api( );
+					$pods = $api->load_pods( );
+					foreach ( $pods as $pod ) {
+						self::$pod_names[ $pod[ 'id' ] ] = $pod[ 'name' ];
+					}
 
-}
+					return (string) self::$pod_names[ $id ];
+
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Translate an array of pod IDs to names
+	 *
+	 * @param $ids
+	 *
+	 * @return array
+	 *
+	 * @since 0.5.0
+	 */
+	public static function pod_name_by_array( $ids, $name = null ) {
+		$new = array();
+
+		foreach ( $ids as $id ) {
+			$new[] = self::pod_name( $id );
+		}
+		return $new;
+	}
+
+
+	}

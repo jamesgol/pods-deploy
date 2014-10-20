@@ -54,22 +54,12 @@ class Pods_Deploy_UI {
 
 				);
 
-				$pod_names = $this->pod_names();
-
-				$pod_names_set = false;
-				if ( is_array( $pod_names ) ) {
-					foreach ( $pod_names as $name => $label ) {
-						if ( pods_v_sanitized( $name, 'POST' ) ) {
-							$params[ 'pods' ][ ] = $name;
-							$pod_names_set = true;
-						}
-
+				$pod_types = $this->pod_types();
+				foreach ( $pod_types as $type => $type_names ) {
+					$type_sanitized = $this->type_sanitize( $type, $type_names );
+					if ( ! empty( $type_sanitized ) ) {
+						$params[ 'deploy_types' ][ $type ] = $type_sanitized;
 					}
-
-				}
-
-				if ( ! $pod_names_set ) {
-					$params[ 'pods' ] = $pod_names;
 				}
 
 				/**
@@ -82,7 +72,7 @@ class Pods_Deploy_UI {
 				 *
 				 * @since 0.5.0
 				 */
-				$params[ 'pods' ] = apply_filters( 'pods_deploy_pods_to_deploy', $params[ 'pods' ], $params );
+				$params[ 'deploy_types' ] = apply_filters( 'pods_deploy_pods_to_deploy', $params[ 'deploy_types' ], $params );
 
 				if ( ! pods_v_sanitized( 'deploy-components', 'post' )  ) {
 					$params[ 'components' ] = false;
@@ -118,6 +108,21 @@ class Pods_Deploy_UI {
 
 	}
 
+	function type_sanitize( $type = null, $valid_list = null ) {
+		$results = array();
+
+		if ( ! empty( $type ) && isset( $_POST[ $type ] ) ) {
+			if ( is_array( $valid_list ) ) {
+				foreach ( $valid_list as $name ) {
+					if ( pods_v_sanitized( $name, $_POST[ $type ] ) ) {
+						$results[ ] = $name;
+					}
+				}
+			}
+		}
+		return $results;
+	}
+
 	/**
 	 * Output a list of field names.
 	 *
@@ -125,9 +130,9 @@ class Pods_Deploy_UI {
 	 *
 	 * @return array|mixed
 	 */
-	function pod_names() {
+	function pod_types() {
 
-		return pods_deploy_pod_names();
+		return pods_deploy_types();
 
 	}
 
@@ -193,6 +198,7 @@ class Pods_Deploy_UI {
 		$public_remote = pods_v_sanitized( 'public', $keys, '' );
 		$private_remote = pods_v_sanitized( 'private', $keys, '' );
 		$deploy_active = Pods_Deploy_Auth::deploy_active();
+		wp_enqueue_style( 'pods-wizard' );
 
 		if ( $deploy_active ) {
 			$key_gen_submit = __( 'Disable Deployments', 'pods-deploy' );
