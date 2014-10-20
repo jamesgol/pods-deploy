@@ -206,44 +206,42 @@ class Pods_Deploy {
 		$data = Pods_Deploy::get_relationships( $deploy_types );
 
 		if ( $data === false ) {
-			// Don't try to deploy_relationships if there aren't any
+			// Don't try to deploy relationships if there aren't any
 			return false;
 		}
 
 		$pods_api_url = trailingslashit( self::$remote_url ) . 'pods-api/';
-		$pod_ids = $deploy_types[ 'pods' ];
 
-		foreach( $pod_ids as $pod_id ) {
-			$pod_name = self::pod_name( $pod_id );
-			$url = $pods_api_url. "{$pod_name}/update_rel";
-			$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
-			$responses[] = $response = wp_remote_post( $url, array (
-					'method'      => 'POST',
-					'body'        => json_encode( $data ),
-					'timeout'     => self::$timeout,
-				)
+		$pod_name = pods_serial_comma( self::get_names_by_relationships( $data ) );
+		$url = $pods_api_url. "update_rel";
+		$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
+		$responses[] = $response = wp_remote_post( $url, array (
+				'method'      => 'POST',
+				'body'        => json_encode( $data ),
+				'timeout'     => self::$timeout,
+			)
+		);
+
+		if ( self::check_return( $response ) ) {
+			echo self::output_message(
+				__( sprintf( 'Relationships for the %1s Pod were updated.', $pod_name )
+					, 'pods-deploy' ),
+				$url
 			);
-
-			if ( self::check_return( $response ) ) {
-				echo self::output_message(
-					__( sprintf( 'Relationships for the %1s Pod were updated.', $pod_name )
-						, 'pods-deploy' ),
-					$url
-				);
-			}
-			else {
-				$fail = true;
-				echo self::output_message(
-					__( sprintf( 'Relationships for the %1s Pod were not updated.', $pod_name )
-						, 'pods-deploy' ),
-					$url
-				);
-				var_dump( $data );
-				var_dump( $response );
-
-			}
+		}
+		else {
+			$fail = true;
+			echo self::output_message(
+				__( sprintf( 'Relationships for the %1s Pod were not updated.', $pod_name )
+					, 'pods-deploy' ),
+				$url
+			);
+			var_dump( $data );
+			var_dump( $response );
 
 		}
+
+
 
 		return $fail;
 
@@ -359,7 +357,7 @@ class Pods_Deploy {
 		$pods = $api->load_pods();
 
 		foreach( $pods as $pod ) {
-			if ( in_array( $pod[ 'id' ], $deploy_types[ 'pods' ] ) )  {
+			if ( in_array( $pod[ 'name' ], $deploy_types[ 'pods' ] ) )  {
 				$pod_name = pods_v( 'name', $pod );
 				self::pod_name( $pod[ 'id' ], $pod_name );
 				if ( ! is_null( $local_fields = pods_v( 'fields', $pod ) ) ) {
@@ -658,5 +656,25 @@ class Pods_Deploy {
 		return null;
 	}
 
+	/**
+	 * Get list of pod names from relationship data
+	 *
+	 * @param $data
+	 *
+	 * @return array
+	 *
+	 * @since 0.5.0
+	 */
+	public static function get_names_by_relationships( $data = null ) {
+		$names = null;
+
+		if ( !empty( $data ) ) {
+			foreach ( $data as $relates ) {
+				$names[] = $relates[ 'from' ][ 'pod_name' ];
+			}
+		}
+
+		return $names;
+	}
 
 	}
