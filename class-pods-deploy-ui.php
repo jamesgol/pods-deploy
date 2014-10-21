@@ -59,12 +59,7 @@ class Pods_Deploy_UI {
 					$type_sanitized = $this->type_sanitize( $type, $type_names );
 					if ( ! empty( $type_sanitized ) ) {
 						$params[ 'deploy_types' ][ $type ] = $type_sanitized;
-
 					}
-				}
-
-				if ( ! $pod_names_set ) {
-					$params[ 'pods' ] = $pod_names;
 				}
 
 				/**
