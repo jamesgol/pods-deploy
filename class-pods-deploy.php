@@ -491,19 +491,30 @@ class Pods_Deploy {
 	 *
 	 * @return string
 	 */
-	public static function output_message( $message, $url = '', $response = false ){
+	public static function output_message( $message, $url = '', $response = false, $good = true ){
 		if ( is_string( $message ) ) {
 			$time = self::elapsed_time();
 
 			$url = self::obscure_keys( $url );
 
-			$out[] = sprintf( '<div class="pods-deploy-message"><p>%1s</p> <span="pods-deploy-message-time">Elapsed time: %2s</span>  <span="pods-deploy-message-url">%3s</span></div>', $message, $time, $url );
+
+
+			$out[] = sprintf( '<div class="pods-deploy-message"><p>%1s</p> <div class="pods-deploy-message-time">Elapsed time: %2s</div>  <div class="pods-deploy-message-url">URL: %3s</div></div>', $message, $time, $url );
 
 			if ( PODS_DEPLOY_DEV_MODE && $response ) {
 				$out[] = '<pre class="pods-deploy-debug">' . print_r( $response ) . '</pre>';
 			}
 
-			return sprintf( '<div class="pods-deploy-report">%1s</div>', implode( $out ) );
+			$class = 'pods-deploy-report';
+
+			if ( $good ) {
+				$class .= ' good';
+			}
+			else {
+				$class .= ' bad';
+			}
+
+			return sprintf( '<div class="%1s">%2s</div>', $class, implode( $out ) );
 
 		}
 

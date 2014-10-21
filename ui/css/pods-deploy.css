@@ -1,3 +1,4 @@
+/**admin page**/
 .pods-deploy-ui {
     width:100%;
     padding:1%;
@@ -42,4 +43,19 @@ label.pods-form-ui-label.pods-form-ui-label-pods-form-ui-deploy-components {
 
 .clearfix {
     clear:both;
+}
+
+/**results page**/
+.pods-deploy-report {
+    background: #FFF;
+    padding: 1%;
+    margin: 1%;
+}
+
+.pods-deploy-report.bad {
+    border-left: 4px solid #DD3D36;
+}
+
+.pods-deploy-report.good {
+    border-left: 4px solid #7AD03A;
 }
