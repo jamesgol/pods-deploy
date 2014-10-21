@@ -82,7 +82,7 @@ class Pods_Deploy {
 		$token = self::$token = Pods_Deploy_Auth::generate_token( $public_key, $private_key );
 
 		if ( ! $remote_url ||  ! $public_key || ! $private_key ) {
-			echo self::output_message( __( 'Invalid parameters:( You shall not pass! ', 'pods-deploy' ) );
+			echo self::output_message( __( 'Invalid parameters:( You shall not pass! ', 'pods-deploy' ), '', false, false );
 
 			return false;
 			
@@ -91,10 +91,9 @@ class Pods_Deploy {
 		$deploy_components = self::do_deploy_components( pods_v( 'components', $deploy_params ) );
 
 		if ( false == $deploy_components ) {
-			echo self::output_message( __( 'Components could not be activated on remote site. Deployment aborted.', 'pods-deploy' ) );
+			echo self::output_message( __( 'Components could not be activated on remote site. Deployment aborted.', 'pods-deploy' ), '', false, false );
 			return false;
 		}
-
 
 		$fail = false;
 
@@ -171,19 +170,19 @@ class Pods_Deploy {
 		$pod_name = pods_serial_comma( $pod_list );
 
 		if ( self::check_return( $response ) ) {
-			echo self::output_message( __( sprintf( 'Package deployed successfully for %1s.', $pod_name ), 'pods-deploy' ), $url );
+			echo self::output_message( __( sprintf( 'Package deployed successfully for %1s :)', $pod_name ), 'pods-deploy' ), $url );
 
 
 			if ( ! $fail ) {
-				echo self::output_message( __( 'Deployment complete :)', 'pods-deploy' ) );
+				echo self::output_message( __( 'Deployment complete :)', 'pods-deploy' ), $url );
 			}
 			else {
-				echo self::output_message( __( 'Deployment completed with mixed results :|', 'pods-deploy' ) );
+				echo self::output_message( __( 'Deployment completed with mixed results :|', 'pods-deploy' ), $url, true, false );
 			}
 
 		}
 		else{
-			echo self::output_message( __( sprintf( 'Package could not be deployed for %1s:(', $pod_name ), 'pods-deploy' ) );
+			echo self::output_message( __( sprintf( 'Package could not be deployed for %1s:(', $pod_name ), 'pods-deploy' ), $url, true, false );
 			var_dump( $response );
 		}
 
@@ -234,10 +233,8 @@ class Pods_Deploy {
 			echo self::output_message(
 				__( sprintf( 'Relationships for the %1s Pod were not updated.', $pod_name )
 					, 'pods-deploy' ),
-				$url
+				$url, true, false
 			);
-			var_dump( $data );
-			var_dump( $response );
 
 		}
 
@@ -283,8 +280,8 @@ class Pods_Deploy {
 		);
 
 		if ( ! self::check_return( $response ) ) {
-			echo self::output_message( __( 'Could not get activate components from remote site:(', 'pod-deploy' ), $url );
-			var_dump( $response );
+			echo self::output_message( __( 'Could not get activate components from remote site:(', 'pod-deploy' ), $url, true, false );
+
 			return false;
 		}
 		else{
@@ -293,8 +290,6 @@ class Pods_Deploy {
 
 
 		$remote_components = json_decode( wp_remote_retrieve_body( $response ) );
-
-		var_dump( $components );
 
 		if ( ! is_object( $remote_components ) ) {
 			$remote_components = array ( 'migrate-packages' );
@@ -325,9 +320,10 @@ class Pods_Deploy {
 			self::output_message( __( 'Successfully activated remote components.', 'pods-deploy' ), $url );
 		}
 		else {
-			self::output_message( __( 'Remote component activation failed.', 'pods-deploy' ), $url );
-			var_dump( $response );
+			self::output_message( __( 'Remote component activation failed.', 'pods-deploy' ), $url, true, false );
+
 			return false;
+			
 		}
 
 		return $response;
