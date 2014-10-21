@@ -3,7 +3,7 @@
 Plugin Name: Pods Deploy
 Plugin URI: http://pods.io/
 Description: Automated Pods config deploy via the WordPress REST API.
-Version: 0.4.0
+Version: 0.5.0
 Author: Pods Framework Team
 Author URI: http://pods.io/about/
 Text Domain: pods-deploy
@@ -26,10 +26,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define( 'PODS_DEPLOY_VERSION', '0.4.0' );
+define( 'PODS_DEPLOY_VERSION', '0.5.0' );
 define( 'PODS_DEPLOY_DIR', plugin_dir_path( __FILE__ ) );
-define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2.1' );
+define( 'PODS_DEPLOY_MIN_JSON_API_VERSION', '0.2.3' );
 define( 'PODS_DEPLOY_MIN_PODS_VERSION', '2.4.3' );
+
+if ( ! defined( 'PODS_DEPLOY_DEV_MODE' ) ) {
+	define( 'PODS_DEPLOY_DEV_MODE', false );
+}
+
+if ( ! defined( 'PODS_DEPLOY_DONT_OBSCURE_KEYS' ) ) {
+	define( 'PODS_DEPLOY_DONT_OBSCURE_KEYS', false );
+}
 
 
 /**
@@ -159,13 +167,38 @@ function pods_deploy_auth() {
  *
  * @return array|mixed
  */
-function pods_deploy_pod_names() {
+function pods_deploy_types( $key = 'id', $value = 'name' ) {
+	$names = array();
+
 	$api = pods_api();
-	$params[ 'names' ] = true;
-	$pod_names = $api->load_pods( $params );
 
-	return $pod_names;
+	$pods = $api->load_pods( array( 'fields' => false ) );
+	if ( is_array( $pods ) && !empty( $pods ) ) {
+		foreach ( $pods as $item ) {
+			$names[ 'pods' ][ $item[ $key ] ] = $item[ $value ];
+		}
+	}
+	$pod_templates = $api->load_templates( );
+	if ( is_array( $pod_templates ) && !empty( $pod_templates ) ) {
+		foreach ( $pod_templates as $item ) {
+			$names[ 'templates' ][ $item[ $key ] ] = $item[ $value ];
+		}
+	}
+	$pod_pages = $api->load_pages( );
+	if ( is_array( $pod_pages ) && !empty( $pod_pages ) ) {
+		foreach ( $pod_pages as $item ) {
+			$names[ 'pages' ][ $item[ $key ] ] = $item[ $value ];
+		}
+	}
 
+	$pod_helpers = $api->load_helpers( );
+	if ( is_array( $pod_helpers ) && !empty( $pod_helpers ) ) {
+		foreach ( $pod_helpers as $item ) {
+			$names[ 'helpers' ][ $item[ $key ] ] = $item[ $value ];
+		}
+	}
+
+	return $names;
 }
 
 /**
@@ -181,6 +214,16 @@ function pods_deploy_deactivate() {
 	Pods_Deploy_Auth::revoke_keys();
 	Pods_Deploy_Auth::clear_local_keys();
 
+}
+
+add_action( 'admin_enqueue_scripts', 'pods_deploy_style' );
+function pods_deploy_style($hook) {
+
+	if ( 'pods-admin_page_pods-deploy' != $hook ) {
+		return;
+	}
+
+	wp_enqueue_style( 'my_custom_script', plugin_dir_url( __FILE__ ) . 'ui/css/pods-deploy.css' );
 }
 
 

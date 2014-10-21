@@ -2,34 +2,98 @@
 
 class Pods_Deploy {
 
+	/**
+	 * @var int The elapsed time since process started.
+	 * @since 0.3.0
+	 */
 	public static $elapsed_time;
 
-	public static function deploy( $deploy_params ) {
-		$remote_url = pods_v( 'remote_url', $deploy_params );
-		$public_key = pods_v( 'public_key', $deploy_params );
-		$private_key = pods_v( 'private_key', $deploy_params );
-		$timeout = pods_v( 'timeout', $deploy_params, 60 );
+	/**
+	 * @var array Deploy params
+	 *
+	 * @since 0.5.0
+	 */
+	public static $settings;
 
-		$token = Pods_Deploy_Auth::generate_token( $public_key, $private_key );
-		
-		if ( is_null( $pod_names = pods_v( 'pods', $deploy_params ) ) ) {
-			$pod_names = self::pod_names();
-		}
+	/**
+	 * @var string URL to deploy to.
+	 *
+	 * @since 0.5.0
+	 */
+	public static $remote_url;
+
+	/**
+	 * @var string Remote site public key
+	 *
+	 * @since 0.5.0
+	 */
+	private static $public_key;
+
+	/**
+	 * @var string Remote site private key
+	 *
+	 * @since 0.5.0
+	 */
+	private static $private_key;
+
+	/**
+	 * @var string Auth token
+	 *
+	 * @since 0.5.0
+	 */
+	private static $token;
+
+	/**
+	 * @var int Timeout for requests
+	 *
+	 * @since 0.5.0
+	 */
+	public static $timeout;
+
+	/**
+	 * @var array Pod types to deploy
+	 *
+	 * @since 0.5.0
+	 */
+	public static $deploy_types;
+
+
+	/**
+	 * @var array Pod id to name mapping
+	 *
+	 * @since 0.5.0
+	 */
+	public static $pod_names = array();
+
+	/**
+	 * The deploy sequence
+	 *
+	 * @since 0.3.0 ?
+	 *
+	 * @param $deploy_params
+	 */
+	public static function deploy( $deploy_params ) {
+		$remote_url =self::$remote_url = pods_v( 'remote_url', $deploy_params );
+		$public_key = self::$public_key = pods_v( 'public_key', $deploy_params );
+		$private_key = self::$private_key = pods_v( 'private_key', $deploy_params );
+		$timeout = self::$timeout = pods_v( 'timeout', $deploy_params, 60 );
+		$deploy_types = self::$deploy_types = pods_v( 'deploy_types', $deploy_params, self::pod_types() );
+
+		$token = self::$token = Pods_Deploy_Auth::generate_token( $public_key, $private_key );
 
 		if ( ! $remote_url ||  ! $public_key || ! $private_key ) {
-			echo self::output_message( __( 'Invalid parameters:( You shall not pass! ', 'pods-deploy' ) );
+			echo self::output_message( __( 'Invalid parameters:( You shall not pass! ', 'pods-deploy' ), '', false, false );
 
 			return false;
 			
 		}
 
-		$deploy_components = self::do_deploy_components( pods_v( 'components', $deploy_params ), $timeout, $remote_url, $public_key, $token );
+		$deploy_components = self::do_deploy_components( pods_v( 'components', $deploy_params ) );
 
 		if ( false == $deploy_components ) {
-			echo self::output_message( __( 'Components could not be activated on remote site. Deployment aborted.', 'pods-deploy' ) );
+			echo self::output_message( __( 'Components could not be activated on remote site. Deployment aborted.', 'pods-deploy' ), '', false, false );
 			return false;
 		}
-
 
 		$fail = false;
 
@@ -39,126 +103,157 @@ class Pods_Deploy {
 			return new WP_Error( 'pods-deploy-need-packages',  __( 'You must activate the Packages Component on both the site sending and receiving this package.', 'pods-deploy' ) );
 		}
 
-		//@todo add options for these params
-		$params = array(
-		//	'pods' => true,
-			'templates' => true,
-			'page' => true,
-			'helpers' => true,
-		);
+		/**
+		 * If true, all Pods and Pages, Templates & Helpers will be migrated in one package.
+		 *
+		 * Means less request, but potentially a much bigger request.
+		 *
+		 * @param bool $all_at_once
+		 *
+		 * @since 0.5.0
+		 */
+		$all_at_once = apply_filters( 'pods_deploy_deploy_in_one_package', false );
+		// @todo Should this be an option on the form
 
-		// Proof of concept: Deal with one pod at a time, need to take list from params/UI
-		$api = pods_api();
-		$pods = $api->load_pods();
-
-		foreach ( $pods as $pod ) {
-			$single = array( 'pods' => array( $pod[ 'id' ] ));
-			self::do_deploy( $single, $deploy_params, $token );
+		if ( ! $all_at_once ) {
+			foreach ( $deploy_types as $type => $type_arr ) {
+				foreach ( $type_arr as $type_id => $type_name ) {
+					self::do_deploy( array( $type => array( $type_name => $type_id ) ) );
+				}
+			}
+		}
+		else {
+			$flipped_types = array();
+			foreach ( $deploy_types as $type => $type_arr ) {
+				$flipped_types[ $type ] = array_flip( $type_arr );
+			}
+			self::do_deploy( $flipped_types );
 		}
 
-		// Deploy everything other than the pods
-		self::do_deploy( $params, $deploy_params, $token );
-
-		self::do_deploy_relationships( $deploy_params, $pod_names, $token );
+		self::do_deploy_relationships( $deploy_types );
 
 	}
 
-	private static function do_deploy( $params, $deploy_params, $token ) {
-		$remote_url = pods_v( 'remote_url', $deploy_params );
-		$public_key = pods_v( 'public_key', $deploy_params );
-		$timeout = pods_v( 'timeout', $deploy_params, 60 );
+	/**
+	 * Deploy a package
+	 *
+	 * @since 0.3.0 ?
+	 *
+	 * @param array $params Pods_Migrate_Packages::export() params
+	 */
+	private static function do_deploy( $params ) {
 
 		$fail = false;
 
 		$data = Pods_Migrate_Packages::export( $params );
 
-		$url = trailingslashit( $remote_url ) . 'pods-components?package';
+		$url = trailingslashit( self::$remote_url ) . 'pods-components?package';
 
-
-
-		$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $url );
-
-		$data = json_encode( $data );
+		$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
 
 		$response = wp_remote_post( $url, array (
 				'method'    => 'POST',
 				'body'      => $data,
-				'timeout'   => $timeout,
+				'timeout'   => self::$timeout,
 			)
 		);
 
+		$pod_name = '';
+		$pod_list = array();
+		foreach ( $params as $param ) {
+			if ( is_array( $param ) ) {
+				$pod_list = array_merge( array_flip( $param ), $pod_list );
+			} else {
+				array_push( $pod_list, self::pod_name( $param ) );
+			}
+		}
+		$pod_name = pods_serial_comma( $pod_list );
+
 		if ( self::check_return( $response ) ) {
-			echo self::output_message( __( 'Package deployed successfully. ', 'pods-deploy' ), $url );
+			echo self::output_message( __( sprintf( 'Package deployed successfully for %1s :)', $pod_name ), 'pods-deploy' ), $url );
 
 
 			if ( ! $fail ) {
-				echo self::output_message( __( 'Deployment complete :)', 'pods-deploy' ) );
+				echo self::output_message( __( 'Deployment complete :)', 'pods-deploy' ), $url );
 			}
 			else {
-				echo self::output_message( __( 'Deployment completed with mixed results :|', 'pods-deploy' ) );
+				echo self::output_message( __( 'Deployment completed with mixed results :|', 'pods-deploy' ), $url, true, false );
 			}
 
 		}
 		else{
-			echo self::output_message( __( 'Package could not be deployed :(', 'pods-deploy' ) );
+			echo self::output_message( __( sprintf( 'Package could not be deployed for %1s:(', $pod_name ), 'pods-deploy' ), $url, true, false );
 			var_dump( $response );
 		}
 
 
 	}
 
-	private static function do_deploy_relationships( $deploy_params, $pod_names, $token ) {
-
-		$remote_url = pods_v( 'remote_url', $deploy_params );
-		$public_key = pods_v( 'public_key', $deploy_params );
-		$timeout = pods_v( 'timeout', $deploy_params, 60 );
+	/**
+	 * Update relationships
+	 *
+	 * @since 0.3.0 ?
+	 *
+	 * @return bool
+	 */
+	private static function do_deploy_relationships( $deploy_types = null ) {
 
 		$fail = false;
 
 		$responses = array();
 
+		$data = Pods_Deploy::get_relationships( $deploy_types );
 
-		$pod_names = array_flip( $pod_names );
-		$data = Pods_Deploy::get_relationships();
-		$pods_api_url = trailingslashit( $remote_url ) . 'pods-api/';
+		if ( $data === false ) {
+			// Don't try to deploy relationships if there aren't any
+			return false;
+		}
 
-		foreach( $pod_names as $pod_name ) {
-			$url = $pods_api_url. "{$pod_name}/update_rel";
-			$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $url );
-			$responses[] = $response = wp_remote_post( $url, array (
-					'method'      => 'POST',
-					'body'        => json_encode( $data ),
-					'timeout'     => $timeout,
-				)
+		$pods_api_url = trailingslashit( self::$remote_url ) . 'pods-api/';
+
+		$pod_name = pods_serial_comma( self::get_names_by_relationships( $data ) );
+		$url = $pods_api_url. "update_rel";
+		$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
+		$responses[] = $response = wp_remote_post( $url, array (
+				'method'      => 'POST',
+				'body'        => json_encode( $data ),
+				'timeout'     => self::$timeout,
+			)
+		);
+
+		if ( self::check_return( $response ) ) {
+			echo self::output_message(
+				__( sprintf( 'Relationships for the %1s Pod were updated.', $pod_name )
+					, 'pods-deploy' ),
+				$url
+			);
+		}
+		else {
+			$fail = true;
+			echo self::output_message(
+				__( sprintf( 'Relationships for the %1s Pod were not updated.', $pod_name )
+					, 'pods-deploy' ),
+				$url, true, false
 			);
 
-			if ( self::check_return( $response ) ) {
-				echo self::output_message(
-					__( sprintf( 'Relationships for the %1s Pod were updated.', $pod_name )
-						, 'pods-deploy' ),
-					$url
-				);
-			}
-			else {
-				$fail = true;
-				echo self::output_message(
-					__( sprintf( 'Relationships for the %1s Pod were not updated.', $pod_name )
-						, 'pods-deploy' ),
-					$url
-				);
-
-				var_dump( $response );
-
-			}
-
 		}
+
+
 
 		return $fail;
 
 	}
 
-	private static function do_deploy_components( $components = null, $timeout, $remote_url, $public_key, $token ) {
-
+	/**
+	 * Update components
+	 *
+	 * @since 0.3.0 ?
+	 *
+	 * @param null $components
+	 *
+	 * @return array|bool|WP_Error
+	 */
+	private static function do_deploy_components( $components = null ) {
 
 		if ( true === $components ) {
 
@@ -174,31 +269,38 @@ class Pods_Deploy {
 			$components[ 'migrate-packages' ] = 'Migrate Packages';
 		}
 
-		$url = trailingslashit( $remote_url ) . 'pods-components';
+		$url = trailingslashit(  self::$remote_url ) . 'pods-components';
 
-
-		$url = Pods_Deploy_Auth::add_to_url( $public_key, $token, $url );
+		$url = Pods_Deploy_Auth::add_to_url( self::$public_key, self::$token, $url );
 
 		$response = wp_remote_post( $url, array (
 				'method'    => 'GET',
-				'timeout'   => $timeout,
+				'timeout'   => self::$timeout,
 			)
 		);
 
 		if ( ! self::check_return( $response ) ) {
-			echo self::output_message( __( 'Could not get activate components from remote site:(', 'pod-deploy' ), $url );
-			var_dump( $response );
+			echo self::output_message( __( 'Could not get activate components from remote site:(', 'pod-deploy' ), $url, true, false );
+
 			return false;
 		}
+		else{
+			echo self::output_message( __( 'Remote site active components determined:)', 'pods-deploy'), $url );
+		}
+
 
 		$remote_components = json_decode( wp_remote_retrieve_body( $response ) );
 
-		$data = array();
-		foreach( $components as $component => $label ) {
+		if ( ! is_object( $remote_components ) ) {
+			$remote_components = array ( 'migrate-packages' );
+		}
+
+		$data = array ();
+		foreach ( $components as $component => $label ) {
 
 			if ( false == pods_v( $component, $remote_components ) ) {
 
-				$data[] = $component;
+				$data[ ] = $component;
 			}
 
 		}
@@ -207,21 +309,21 @@ class Pods_Deploy {
 			$data = array ( 'activate' => $data );
 		}
 
-
 		$response = wp_remote_post( $url, array (
 				'method'    => 'PUT',
 				'body'      => json_encode( $data ),
-				'timeout'   => $timeout,
+				'timeout'   => self::$timeout,
 			)
 		);
 
 		if ( self::check_return( $response ) ) {
-			self::output_message( __( 'Successfully activated components.', 'pods-deploy' ), $url );
+			self::output_message( __( 'Successfully activated remote components.', 'pods-deploy' ), $url );
 		}
 		else {
-			self::output_message( __( 'Component activation failed.', 'pods-deploy' ), $url );
-			var_dump( $response );
+			self::output_message( __( 'Remote component activation failed.', 'pods-deploy' ), $url, true, false );
+
 			return false;
+			
 		}
 
 		return $response;
@@ -235,30 +337,41 @@ class Pods_Deploy {
 	 *
 	 * @return bool
 	 */
-	public static function get_relationships(){
+	public static function get_relationships( $deploy_types = null ){
 		$relationships = false;
+
+		if ( empty( $deploy_types ) ) {
+			return false;
+		}
+
+		if ( empty( $deploy_types[ 'pods' ] ) ) {
+			// Right now only pods have relationships, but maybe in the future other types will have them also
+			return false;
+		}
 
 		$api = pods_api();
 		$pods = $api->load_pods();
 
 		foreach( $pods as $pod ) {
-			$pod_name = pods_v( 'name', $pod );
-			if ( ! is_null( $local_fields = pods_v( 'fields', $pod ) ) ) {
-				foreach ( $local_fields as $field_name => $field ) {
-					if ( '' !== ( $sister_id = pods_v( 'sister_id', $field ) ) ) {
+			if ( in_array( $pod[ 'name' ], $deploy_types[ 'pods' ] ) )  {
+				$pod_name = pods_v( 'name', $pod );
+				self::pod_name( $pod[ 'id' ], $pod_name );
+				if ( ! is_null( $local_fields = pods_v( 'fields', $pod ) ) ) {
+					foreach ( $local_fields as $field_name => $field ) {
+						if ( '' !== ( $sister_id = pods_v( 'sister_id', $field ) ) ) {
 
-						$relationships[ pods_v( 'name', $field ) ] = array (
-							'from' => array (
-								'pod_name'   => $pod_name,
-								'field_name' => pods_v( 'name', $field ),
-							),
-							'to'   => self::find_by_id( $sister_id, $pods ),
-						);
+							$relationships[ $pod_name . '_' . pods_v( 'name', $field ) ] = array(
+								'from' => array(
+									'pod_name'   => $pod_name,
+									'field_name' => pods_v( 'name', $field ),
+								),
+								'to'   => self::find_by_id( $sister_id, $pods ),
+							);
+
+						}
 
 					}
-
 				}
-
 
 			}
 
@@ -318,7 +431,7 @@ class Pods_Deploy {
 				$search = array_search( $id, $fields );
 
 				if ( $search ) {
-
+					self::pod_name( $id, $pod_name );
 					return array(
 						'pod_name' => $pod_name,
 						'field_name' => $search,
@@ -366,19 +479,63 @@ class Pods_Deploy {
 	/**
 	 * Output a message during deployment, with the time elpased since deploy started.
 	 *
-	 * @param  string   $message Message to show.
-	 * @param string    $url Optional. The URL to show for message.
+	 * @param string   $message Message to show.
+	 * @param string   $url Optional. The URL to show for message.
+	 * @param string|bool   $response Optional. The response from the request. Optional. If it's provided and PODS_DEPLOY_DEV_MODE it will be outputted.
 	 *
 	 * @since 0.3.0
 	 *
 	 * @return string
 	 */
-	public static function output_message( $message, $url = '' ){
+	public static function output_message( $message, $url = '', $response = false, $good = true ){
 		if ( is_string( $message ) ) {
 			$time = self::elapsed_time();
 
-			return sprintf( '<div class="pods-deploy-message"><p>%1s</p> <span="pods-deploy-message-time">Elapsed time: %2s</span>  <span="pods-deploy-message-url">%3s</span></div>', $message, $time, $url );
+			$url = self::obscure_keys( $url );
+
+
+
+			$out[] = sprintf( '<div class="pods-deploy-message"><p>%1s</p> <div class="pods-deploy-message-time">Elapsed time: %2s</div>  <div class="pods-deploy-message-url">URL: %3s</div></div>', $message, $time, $url );
+
+			if ( PODS_DEPLOY_DEV_MODE && $response ) {
+				$out[] = '<pre class="pods-deploy-debug">' . print_r( $response ) . '</pre>';
+			}
+
+			$class = 'pods-deploy-report';
+
+			if ( $good ) {
+				$class .= ' good';
+			}
+			else {
+				$class .= ' bad';
+			}
+
+			return sprintf( '<div class="%1s">%2s</div>', $class, implode( $out ) );
+
 		}
+
+	}
+
+	/**
+	 * Remove keys/tokens from URLs
+	 *
+	 * Can be disabled by defining PODS_DEPLOY_DONT_OBSCURE_KEYS as true.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @param string $url
+	 *
+	 * @return string
+	 */
+	public static function obscure_keys( $url ) {
+		if ( PODS_DEPLOY_DONT_OBSCURE_KEYS ) {
+			return $url;
+		}
+
+		$remove = strstr( $url, 'pods-deploy-key=');
+		$url = str_replace($remove, 'KEYS-REMOVED-FOR-SECURITY', $url );
+
+		return $url;
 
 	}
 
@@ -398,6 +555,9 @@ class Pods_Deploy {
 			$hours = (int) ( $time/60/60);
 			$minutes = (int)( $time/60)-$hours*60;
 			$seconds = (int) $time-$hours*60*60-$minutes*60;
+		}
+		else{
+			$seconds = $time;
 		}
 
 		return $seconds;
@@ -432,9 +592,9 @@ class Pods_Deploy {
 	 *
 	 * @return array|mixed
 	 */
-	static function pod_names() {
+	static function pod_types() {
 
-		return pods_deploy_pod_names();
+		return pods_deploy_types();
 
 	}
 
@@ -468,5 +628,60 @@ class Pods_Deploy {
 
 	}
 
+	/**
+	 * Get a Pod's ID
+	 *
+	 * @param $name
+	 *
+	 * @return int
+	 *
+	 * @since 0.5.0
+	 */
+	public static function pod_id( $name ) {
+		$api = pods_api( $name );
 
-}
+		return (int) $api->pod_id;
+
+	}
+
+	/**
+	 * Get a Pod's name by ID
+	 *
+	 * @param $id
+	 *
+	 * @return string
+	 *
+	 * @since 0.5.0
+	 */
+	public static function pod_name( $id = null ) {
+		foreach ( self::$deploy_types as $type ) {
+			if ( !empty( $type[ $id ] ) ) {
+				return $type[ $id ];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get list of pod names from relationship data
+	 *
+	 * @param $data
+	 *
+	 * @return array
+	 *
+	 * @since 0.5.0
+	 */
+	public static function get_names_by_relationships( $data = null ) {
+		$names = null;
+
+		if ( !empty( $data ) ) {
+			foreach ( $data as $relates ) {
+				$names[] = $relates[ 'from' ][ 'pod_name' ];
+			}
+		}
+
+		return $names;
+	}
+
+	}
